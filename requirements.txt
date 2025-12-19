@@ -1,0 +1,6 @@
+Flask
+pandas
+numpy
+scikit-learn
+gunicorn
+catboost==1.2.7
