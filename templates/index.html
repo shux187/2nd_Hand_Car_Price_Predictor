@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Car Price Predictor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* CSS remains unchanged - keeping your excellent styling */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f5f7fa; color: #333; line-height: 1.6; padding: 20px; min-height: 100vh; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
+        .container { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        @media (max-width: 768px) { .container { grid-template-columns: 1fr; } }
+        header { grid-column: 1 / -1; text-align: center; margin-bottom: 30px; padding: 20px; background-color: #fff; border-radius: 15px; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05); }
+        h1 { color: #2c3e50; margin-bottom: 10px; font-size: 2.5rem; }
+        .subtitle { color: #7f8c8d; font-size: 1.1rem; max-width: 800px; margin: 0 auto; }
+        .form-section { background-color: #fff; padding: 30px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05); }
+        .results-section { background-color: #fff; padding: 30px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05); display: flex; flex-direction: column; }
+        h2 { color: #2c3e50; margin-bottom: 25px; padding-bottom: 10px; border-bottom: 2px solid #3498db; display: flex; align-items: center; gap: 10px; }
+        h2 i { color: #3498db; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50; }
+        select, input { width: 100%; padding: 12px 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem; transition: all 0.3s; }
+        select:focus, input:focus { outline: none; border-color: #3498db; box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2); }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .submit-btn { background-color: #3498db; color: white; border: none; padding: 15px; font-size: 1.1rem; border-radius: 8px; cursor: pointer; transition: all 0.3s; font-weight: 600; margin-top: 10px; width: 100%; }
+        .submit-btn:hover { background-color: #2980b9; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3); }
+        .submit-btn:disabled { background-color: #bdc3c7; cursor: not-allowed; transform: none; box-shadow: none; }
+        .prediction-result { background-color: #f8f9fa; border-radius: 10px; padding: 30px; text-align: center; flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .prediction-label { font-size: 1.2rem; color: #7f8c8d; margin-bottom: 15px; }
+        .prediction-value { font-size: 3rem; font-weight: 700; color: #2c3e50; margin-bottom: 30px; }
+        .prediction-positive { color: #27ae60; }
+        .prediction-negative { color: #e74c3c; }
+        .prediction-message { font-size: 1.1rem; color: #2c3e50; background-color: #e8f4fc; padding: 15px; border-radius: 8px; width: 100%; max-width: 400px; }
+        .prediction-details { margin-top: 30px; width: 100%; }
+        .prediction-details h3 { margin-bottom: 15px; color: #2c3e50; text-align: left; }
+        .details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: left; }
+        .detail-item { padding: 10px; background-color: #f8f9fa; border-radius: 5px; }
+        .detail-label { font-weight: 600; color: #7f8c8d; font-size: 0.9rem; }
+        .detail-value { color: #2c3e50; margin-top: 3px; }
+        .loading { display: none; text-align: center; margin: 20px 0; }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 15px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        footer { grid-column: 1 / -1; text-align: center; margin-top: 30px; padding: 20px; color: #7f8c8d; font-size: 0.9rem; border-top: 1px solid #eee; }
+        .error-message { color: #e74c3c; background-color: #fde8e8; padding: 15px; border-radius: 8px; margin-top: 20px; display: none; }
+        .success-message { color: #27ae60; background-color: #e8f7ef; padding: 15px; border-radius: 8px; margin-top: 20px; display: none; }
+        .model-loading { display: none; font-size: 0.9rem; color: #3498db; margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-car"></i> Car Price Predictor</h1>
+            <p class="subtitle">Use our machine learning model to estimate the market value of your car based on its specifications and condition.</p>
+        </header>
+        
+        <section class="form-section">
+            <h2><i class="fas fa-edit"></i> Car Details</h2>
+            <form id="carPredictionForm">
+                <div class="form-group">
+                    <label for="Brand">Brand</label>
+                    <select id="Brand" name="Brand" required onchange="loadModels()">
+                        <option value="">Select Brand</option>
+                        <option value="Toyota">Toyota</option>
+                        <option value="Honda">Honda</option>
+                        <option value="Ford">Ford</option>
+                        <option value="BMW">BMW</option>
+                        <option value="Mercedes">Mercedes</option>
+                        <option value="Audi">Audi</option>
+                        <option value="Tesla">Tesla</option>
+                        <option value="Chevrolet">Chevrolet</option>
+                        <option value="Nissan">Nissan</option>
+                        <option value="Hyundai">Hyundai</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="Model">Model</label>
+                    <select id="Model" name="Model" required disabled>
+                        <option value="">First select a brand</option>
+                    </select>
+                    <div class="model-loading" id="modelLoading">Loading models...</div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="Fuel">Fuel Type</label>
+                        <select id="Fuel" name="Fuel" required>
+                            <option value="">Select Fuel Type</option>
+                            <option value="Petrol">Petrol</option>
+                            <option value="Diesel">Diesel</option>
+                            <option value="Electric">Electric</option>
+                            <option value="Hybrid">Hybrid</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="Transmission">Transmission</label>
+                        <select id="Transmission" name="Transmission" required>
+                            <option value="">Select Transmission</option>
+                            <option value="Manual">Manual</option>
+                            <option value="Automatic">Automatic</option>
+                            <option value="Semi-Auto">Semi-Auto</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="Year">Manufacturing Year</label>
+                        <input type="number" id="Year" name="Year" min="1990" max="2026" value="2022" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="EngineSize">Engine Size (L)</label>
+                        <input type="number" step="0.1" id="EngineSize" name="EngineSize" min="0.5" max="8.0" value="2.0" required>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="Mileage">Mileage (km)</label>
+                        <input type="number" id="Mileage" name="Mileage" min="0" max="500000" value="50000" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="Doors">Number of Doors</label>
+                        <select id="Doors" name="Doors" required>
+                            <option value="2">2 Doors</option>
+                            <option value="4" selected>4 Doors</option>
+                            <option value="5">5 Doors</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="OwnerCount">Number of Previous Owners</label>
+                    <select id="OwnerCount" name="OwnerCount" required>
+                        <option value="0">0 (Brand New)</option>
+                        <option value="1" selected>1 Owner</option>
+                        <option value="2">2 Owners</option>
+                        <option value="3">3 Owners</option>
+                        <option value="4">4+ Owners</option>
+                    </select>
+                </div>
+                
+                <div class="loading" id="loadingIndicator">
+                    <div class="spinner"></div>
+                    <p>Analyzing car details and predicting price...</p>
+                </div>
+                
+                <button type="submit" class="submit-btn" id="predictBtn">
+                    <i class="fas fa-calculator"></i> Predict Car Price
+                </button>
+            </form>
+            
+            <div class="error-message" id="errorMessage"></div>
+            <div class="success-message" id="successMessage"></div>
+        </section>
+        
+        <section class="results-section">
+            <h2><i class="fas fa-chart-line"></i> Price Prediction</h2>
+            <div class="prediction-result">
+                <div class="prediction-label">Estimated Market Value</div>
+                <div class="prediction-value" id="predictionValue">$ --</div>
+                <div class="prediction-message" id="predictionMessage">
+                    Enter car details and click "Predict Car Price" to get an estimate.
+                </div>
+                
+                <div class="prediction-details" id="predictionDetails" style="display: none;">
+                    <h3>Car Details Summary</h3>
+                    <div class="details-grid" id="detailsGrid"></div>
+                </div>
+            </div>
+        </section>
+        
+        <footer>
+            <p>Car Price Predictor &copy; 2025 | Powered by Machine Learning Model</p>
+        </footer>
+    </div>
+
+    <script>
+        async function loadModels() {
+            const brandSelect = document.getElementById('Brand');
+            const modelSelect = document.getElementById('Model');
+            const modelLoading = document.getElementById('modelLoading');
+            const selectedBrand = brandSelect.value;
+            
+            if (!selectedBrand) {
+                modelSelect.innerHTML = '<option value="">First select a brand</option>';
+                modelSelect.disabled = true;
+                return;
+            }
+
+            modelSelect.disabled = true;
+            modelLoading.style.display = 'block';
+            
+            try {
+                const response = await fetch(`/get_models/${selectedBrand}`);
+                const data = await response.json();
+                
+                modelSelect.innerHTML = '<option value="">Select Model</option>';
+                if (data.models && data.models.length > 0) {
+                    data.models.forEach(model => {
+                        const option = document.createElement('option');
+                        option.value = model;
+                        option.textContent = model;
+                        modelSelect.appendChild(option);
+                    });
+                    modelSelect.disabled = false;
+                } else {
+                    modelSelect.innerHTML = '<option value="">No models found</option>';
+                }
+            } catch (error) {
+                console.error('Error loading models:', error);
+                modelSelect.innerHTML = '<option value="">Error loading models</option>';
+            } finally {
+                modelLoading.style.display = 'none';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('carPredictionForm');
+            const predictBtn = document.getElementById('predictBtn');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const errorMessage = document.getElementById('errorMessage');
+            const successMessage = document.getElementById('successMessage');
+            const predictionValue = document.getElementById('predictionValue');
+            const predictionMessage = document.getElementById('predictionMessage');
+            const predictionDetails = document.getElementById('predictionDetails');
+            const detailsGrid = document.getElementById('detailsGrid');
+
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                // UI Reset
+                errorMessage.style.display = 'none';
+                successMessage.style.display = 'none';
+                loadingIndicator.style.display = 'block';
+                predictBtn.disabled = true;
+                
+                const formData = new FormData(form);
+                const data = Object.fromEntries(formData.entries());
+
+                try {
+                    // We send a JSON request to the updated Flask /predict route
+                    const response = await fetch('/predict', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                    
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        // Update UI with real prediction from Flask
+                        predictionValue.textContent = `$ ${result.prediction.toLocaleString()}`;
+                        predictionValue.className = 'prediction-value prediction-positive';
+                        predictionMessage.textContent = result.prediction_text;
+                        
+                        successMessage.textContent = 'Prediction successful!';
+                        successMessage.style.display = 'block';
+                        
+                        updateCarDetailsSummary(data);
+                        predictionDetails.style.display = 'block';
+                    } else {
+                        throw new Error(result.error || "Prediction failed");
+                    }
+
+                } catch (error) {
+                    console.error('Error:', error);
+                    errorMessage.textContent = `Server Error: ${error.message}`;
+                    errorMessage.style.display = 'block';
+                    predictionValue.textContent = "$ --";
+                    predictionValue.className = 'prediction-value';
+                } finally {
+                    loadingIndicator.style.display = 'none';
+                    predictBtn.disabled = false;
+                }
+            });
+
+            function updateCarDetailsSummary(data) {
+                detailsGrid.innerHTML = '';
+                const labels = { 'Brand': 'Brand', 'Model': 'Model', 'Year': 'Year', 'Mileage': 'Mileage (km)' };
+                for (const [key, label] of Object.entries(labels)) {
+                    const item = document.createElement('div');
+                    item.className = 'detail-item';
+                    item.innerHTML = `<div class="detail-label">${label}</div><div class="detail-value">${data[key]}</div>`;
+                    detailsGrid.appendChild(item);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
